@@ -1,0 +1,425 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Condition": {
+                "actions": {
+                    "HTTP_2": {
+                        "inputs": {
+                            "authentication": {
+                                "type": "ManagedServiceIdentity"
+                            },
+                            "method": "POST",
+                            "uri": "https://management.azure.com/subscriptions/subscription/resourceGroups/resourcegroup/providers/Microsoft.Web/sites/SolarDailyMonitor/stop?api-version=2015-08-01"
+                        },
+                        "runAfter": {},
+                        "type": "Http"
+                    }
+                },
+                "expression": {
+                    "and": [
+                        {
+                            "equals": [
+                                "@body('Parse_JSON_3')?['Sunset']",
+                                "True"
+                            ]
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Parse_JSON_3": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "If"
+            },
+            "Condition_2": {
+                "actions": {
+                    "HTTP": {
+                        "inputs": {
+                            "authentication": {
+                                "type": "ManagedServiceIdentity"
+                            },
+                            "method": "POST",
+                            "uri": "https://management.azure.com/subscriptions/subscription/resourceGroups/resourcegroup/providers/Microsoft.Web/sites/SolarDailyMonitor/start?api-version=2015-08-01"
+                        },
+                        "runAfter": {},
+                        "type": "Http"
+                    }
+                },
+                "expression": {
+                    "and": [
+                        {
+                            "equals": [
+                                "@body('Parse_JSON_3')?['Sunrise']",
+                                "True"
+                            ]
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Parse_JSON_3": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "If"
+            },
+            "For_each": {
+                "actions": {
+                    "For_each_3": {
+                        "actions": {
+                            "For_each_2": {
+                                "actions": {
+                                    "Compose": {
+                                        "inputs": {
+                                            "Sunrise": "@{item()[0]}",
+                                            "Sunset": "@{item()[1]}"
+                                        },
+                                        "runAfter": {},
+                                        "type": "Compose"
+                                    },
+                                    "Set_variable": {
+                                        "inputs": {
+                                            "name": "Times",
+                                            "value": "@outputs('Compose')"
+                                        },
+                                        "runAfter": {
+                                            "Compose": [
+                                                "Succeeded"
+                                            ]
+                                        },
+                                        "type": "SetVariable"
+                                    }
+                                },
+                                "foreach": "@items('For_each_3')?['rows']",
+                                "runAfter": {},
+                                "type": "Foreach"
+                            }
+                        },
+                        "foreach": "@body('Parse_JSON_2')?['data']?['SearchResult']?['tables']",
+                        "runAfter": {},
+                        "type": "Foreach"
+                    }
+                },
+                "foreach": "@body('Parse_JSON_2')?['data']?['SearchResult']?['dataSources']",
+                "runAfter": {
+                    "Parse_JSON_2": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Foreach"
+            },
+            "Initialize_variable": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Times",
+                            "type": "Object"
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Parse_JSON": {
+                "inputs": {
+                    "content": "@triggerBody()",
+                    "schema": {
+                        "properties": {
+                            "data": {
+                                "properties": {
+                                    "AlertRuleName": {
+                                        "type": "string"
+                                    },
+                                    "AlertThresholdOperator": {
+                                        "type": "string"
+                                    },
+                                    "AlertThresholdValue": {
+                                        "type": "integer"
+                                    },
+                                    "Description": {
+                                        "type": "string"
+                                    },
+                                    "LinkToSearchResults": {
+                                        "type": "string"
+                                    },
+                                    "ResultCount": {
+                                        "type": "integer"
+                                    },
+                                    "SearchIntervalEndtimeUtc": {
+                                        "type": "string"
+                                    },
+                                    "SearchIntervalInSeconds": {
+                                        "type": "integer"
+                                    },
+                                    "SearchIntervalStartTimeUtc": {
+                                        "type": "string"
+                                    },
+                                    "SearchQuery": {
+                                        "type": "string"
+                                    },
+                                    "SearchResult": {
+                                        "properties": {
+                                            "dataSources": {
+                                                "items": {
+                                                    "properties": {
+                                                        "resourceId": {
+                                                            "type": "string"
+                                                        },
+                                                        "tables": {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "resourceId",
+                                                        "tables"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                "type": "array"
+                                            },
+                                            "tables": {
+                                                "items": {
+                                                    "properties": {
+                                                        "columns": {
+                                                            "items": {
+                                                                "properties": {
+                                                                    "name": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "type": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "name",
+                                                                    "type"
+                                                                ],
+                                                                "type": "object"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "rows": {
+                                                            "items": {
+                                                                "items": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "type": "array"
+                                                            },
+                                                            "type": "array"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "name",
+                                                        "columns",
+                                                        "rows"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                "type": "array"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "Severity": {
+                                        "type": "string"
+                                    },
+                                    "SubscriptionId": {
+                                        "type": "string"
+                                    },
+                                    "WorkspaceId": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "schemaId": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "runAfter": {
+                    "Initialize_variable": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ParseJson"
+            },
+            "Parse_JSON_2": {
+                "inputs": {
+                    "content": "@body('Parse_JSON')",
+                    "schema": {
+                        "properties": {
+                            "data": {
+                                "properties": {
+                                    "AlertRuleName": {
+                                        "type": "string"
+                                    },
+                                    "AlertThresholdOperator": {
+                                        "type": "string"
+                                    },
+                                    "AlertThresholdValue": {
+                                        "type": "integer"
+                                    },
+                                    "Description": {
+                                        "type": "string"
+                                    },
+                                    "LinkToSearchResults": {
+                                        "type": "string"
+                                    },
+                                    "ResultCount": {
+                                        "type": "integer"
+                                    },
+                                    "SearchIntervalEndtimeUtc": {
+                                        "type": "string"
+                                    },
+                                    "SearchIntervalInSeconds": {
+                                        "type": "integer"
+                                    },
+                                    "SearchIntervalStartTimeUtc": {
+                                        "type": "string"
+                                    },
+                                    "SearchQuery": {
+                                        "type": "string"
+                                    },
+                                    "SearchResult": {
+                                        "properties": {
+                                            "dataSources": {
+                                                "items": {
+                                                    "properties": {
+                                                        "resourceId": {
+                                                            "type": "string"
+                                                        },
+                                                        "tables": {
+                                                            "items": {
+                                                                "type": "string"
+                                                            },
+                                                            "type": "array"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "resourceId",
+                                                        "tables"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                "type": "array"
+                                            },
+                                            "tables": {
+                                                "items": {
+                                                    "properties": {
+                                                        "columns": {
+                                                            "items": {
+                                                                "properties": {
+                                                                    "name": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "type": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "name",
+                                                                    "type"
+                                                                ],
+                                                                "type": "object"
+                                                            },
+                                                            "type": "array"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "rows": {
+                                                            "items": {
+                                                                "items": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "type": "array"
+                                                            },
+                                                            "type": "array"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "name",
+                                                        "columns",
+                                                        "rows"
+                                                    ],
+                                                    "type": "object"
+                                                },
+                                                "type": "array"
+                                            }
+                                        },
+                                        "type": "object"
+                                    },
+                                    "Severity": {
+                                        "type": "string"
+                                    },
+                                    "SubscriptionId": {
+                                        "type": "string"
+                                    },
+                                    "WorkspaceId": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "schemaId": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "runAfter": {
+                    "Parse_JSON": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ParseJson"
+            },
+            "Parse_JSON_3": {
+                "inputs": {
+                    "content": "@variables('Times')",
+                    "schema": {
+                        "properties": {
+                            "Sunrise": {
+                                "type": "string"
+                            },
+                            "Sunset": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "runAfter": {
+                    "For_each": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ParseJson"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {},
+        "triggers": {
+            "manual": {
+                "inputs": {
+                    "schema": {}
+                },
+                "kind": "Http",
+                "type": "Request"
+            }
+        }
+    },
+    "parameters": {}
+}

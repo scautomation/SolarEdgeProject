@@ -1,0 +1,118 @@
+{
+    "$connections": {
+        "value": {
+            "azureloganalyticsdatacollector": {
+                "connectionId": "",
+                "connectionName": "azureloganalyticsdatacollector",
+                "id": ""
+            }
+        }
+    },
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "HTTP": {
+                "inputs": {
+                    "method": "POST",
+                    "uri": "https://api.sunrise-sunset.org/json?lat=&lng=&formatted=0"
+                },
+                "runAfter": {},
+                "type": "Http"
+            },
+            "Parse_JSON": {
+                "inputs": {
+                    "content": "@body('HTTP')",
+                    "schema": {
+                        "properties": {
+                            "results": {
+                                "properties": {
+                                    "astronomical_twilight_begin": {
+                                        "type": "string"
+                                    },
+                                    "astronomical_twilight_end": {
+                                        "type": "string"
+                                    },
+                                    "civil_twilight_begin": {
+                                        "type": "string"
+                                    },
+                                    "civil_twilight_end": {
+                                        "type": "string"
+                                    },
+                                    "day_length": {
+                                        "type": "integer"
+                                    },
+                                    "nautical_twilight_begin": {
+                                        "type": "string"
+                                    },
+                                    "nautical_twilight_end": {
+                                        "type": "string"
+                                    },
+                                    "solar_noon": {
+                                        "type": "string"
+                                    },
+                                    "sunrise": {
+                                        "type": "string"
+                                    },
+                                    "sunset": {
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            },
+                            "status": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "runAfter": {
+                    "HTTP": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ParseJson"
+            },
+            "Send_Data": {
+                "inputs": {
+                    "body": "{\n\"Sunrise\":\"@{replace(body('Parse_JSON')?['results']?['sunrise'],'+00:00','')}\",\n\"Sunset\":\"@{replace(body('Parse_JSON')?['results']?['sunset'],'+00:00','')}\",\n\"SolarNoon\":\"@{replace(body('Parse_JSON')?['results']?['solar_noon'],'+00:00','')}\",\n\"Daylight\":\"@{div(body('Parse_JSON')?['results']?['day_length'],60)}\"\n}",
+                    "headers": {
+                        "Log-Type": "DayLight"
+                    },
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['azureloganalyticsdatacollector']['connectionId']"
+                        }
+                    },
+                    "method": "post",
+                    "path": "/api/logs"
+                },
+                "runAfter": {
+                    "Parse_JSON": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ApiConnection"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "Recurrence": {
+                "recurrence": {
+                    "frequency": "Day",
+                    "interval": 1,
+                    "startTime": "2019-04-23T10:00:00Z",
+                    "timeZone": "UTC-11"
+                },
+                "type": "Recurrence"
+            }
+        }
+    }
+}
